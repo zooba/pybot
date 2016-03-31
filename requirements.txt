@@ -1,0 +1,2 @@
+#azure-storage==0.30.0
+bottle==0.12.9
