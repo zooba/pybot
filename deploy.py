@@ -75,7 +75,7 @@ LOCATION = "West US"
 
 COMPANY_NAME = "Contoso"
 DEPLOYMENT = "ContosoBots"
-WEBSITE = "pybot" + uuid.uuid4().hex
+WEBSITE = "pybot" + uuid.uuid4().hex[:8].lower()
 STORAGE = 's' + uuid.uuid4().hex[:23].lower()
 
 WEBSITE_SOURCE = "https://github.com/zooba/pybot.git"
@@ -167,7 +167,7 @@ TEMPLATE = {
           "type": "config",
           "dependsOn": [
             "[resourceId('Microsoft.Web/Sites', parameters('siteName'))]",
-            "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]",
+            #"[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]",
           ],
           "properties": {
             "COMPANY_NAME": "[parameters('companyName')]",
@@ -182,7 +182,7 @@ TEMPLATE = {
             
             # Not very secret, but this is just for fun
             "APP_ID": "mybotapp",
-            "APP_SECRET": "mybotsecret",
+            "APP_SECRET": "3c8a5686b1b14135b9112620603c5575",
           }
         },
 
