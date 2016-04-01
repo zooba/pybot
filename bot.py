@@ -92,7 +92,7 @@ class Conversation:
 CONVERSATIONS = {}
 
 @post('/api/messages')
-@auth_basic(check_auth)
+#@auth_basic(check_auth)
 def root():
     msg = Message(request.json)
     
@@ -102,6 +102,7 @@ def root():
         CONVERSATIONS[c_id] = conv = Conversation(c_id)
 
     conv.history.append(msg)
+    conv.Message_calculate
     res = getattr(conv, msg.type, conv.fallback)(msg)
 
     if isinstance(res, str):
