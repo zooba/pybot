@@ -1,0 +1,86 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "siteName": { "type": "string" },
+    "hostingPlanName": { "type": "string" },
+    "companyName": { "type": "string" },
+    "pythonPackage": {
+      "type": "string",
+      "defaultValue": "python351x64",
+      "allowedValues": [ "python351x64", "python2711x64" ]
+    }
+  },
+  "variables": {
+    "appInsightsName": "[concat('ai', uniqueString(resourceGroup().id))]"
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-08-01",
+      "name": "[parameters('hostingPlanName')]",
+      "type": "Microsoft.Web/serverfarms",
+      "location": "[resourceGroup().location]",
+      "sku": { "name": "S1" },
+      "properties": { }
+    },
+    {
+      "apiVersion": "2014-04-01",
+      "name": "[variables('appInsightsName')]",
+      "type": "Microsoft.Insights/components",
+      "location": "Central US",
+      "tags": { },
+      "properties": {
+        "applicationId": "[parameters('siteName')]"
+      }
+    },
+    {
+      "apiVersion": "2015-08-01",
+      "name": "[parameters('siteName')]",
+      "type": "Microsoft.Web/sites",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [ "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]" ],
+      "properties": {
+        "serverFarmId": "[parameters('hostingPlanName')]"
+      },
+      "resources": [
+        {
+          "apiVersion": "2015-08-01",
+          "name": "[parameters('pythonPackage')]",
+          "type": "siteextensions",
+          "properties": { },
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
+          ]
+        },
+        {
+          "apiVersion": "2015-08-01",
+          "name": "logs",
+          "type": "config",
+          "properties": {
+            "failedRequestsTracing": { "enabled": true }
+          },
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', parameters('siteName'))]",
+            "[resourceId('Microsoft.Web/Sites/siteextensions', parameters('siteName'), parameters('pythonPackage'))]"
+          ]
+        },
+        {
+          "apiVersion": "2015-08-01",
+          "name": "appsettings",
+          "type": "config",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/Sites', parameters('siteName'))]",
+            "[resourceId('Microsoft.Web/Sites/siteextensions', parameters('siteName'), parameters('pythonPackage'))]",
+            "[resourceId('Microsoft.Web/Sites/config', parameters('siteName'), 'logs')]",
+            "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+          ],
+          "properties": {
+            "COMPANY_NAME": "[parameters('companyName')]",
+
+            "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2014-04-01').InstrumentationKey]"
+          }
+        }
+      ]
+    }
+  ]
+}
