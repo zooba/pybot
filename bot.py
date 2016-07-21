@@ -5,9 +5,18 @@ def on_message(msg):
         msg.from_user.save_data()
         msg.reply('Sure thing, ' + msg.from_user.data['callme'])
         return
-    
+
+    if msg.text.lower().startswith('i have a '):
+        words = msg.text.split(' ')
+        try:
+            msg.from_user.data[' '.join(words[4:])] = words[3]
+            msg.reply("Okay, I'll remember that.")
+        except IndexError:
+            msg.reply("You have a what now?")
+        return
+
     if msg.text.lower() == 'what do you know about me':
-        msg.reply('\r\n'.join(['Just this:'] + ['*{}*: {}'.format(*i) for i in msg.from_user.data.items()]))
+        msg.reply('Just this:' + ', '.join('{}: {}'.format(*i) for i in msg.from_user.data.items()))
         return
 
     if msg.text.lower().startswith('hi'):
