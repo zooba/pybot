@@ -84,6 +84,9 @@ def get_deploy_files():
     return [(s, d) for s, d in [
         (DEPLOY_ROOT / 'app.py', 'app.py'),
         (DEPLOY_ROOT / 'bot.py', 'bot.py'),
+        (DEPLOY_ROOT / 'bot_models.py', 'bot_models.py'),
+        (DEPLOY_ROOT / 'bot_requests.py', 'bot_requests.py'),
+        (DEPLOY_ROOT / 'message.py', 'message.py'),
         (DEPLOY_ROOT / 'requirements.txt', 'requirements.txt'),
         (DEPLOY_ROOT / 'web.config', 'web.config'),
     ] if '__pycache__' not in s.parts]
@@ -123,10 +126,13 @@ try:
     # PARAMETERS will be merged with TEMPLATE on the server to produce
     # our specific deployment. This allows templates to be reused without
     # modification.
+    from _deploy.deploy_credentials import BOT_APP_ID, BOT_APP_PASSWORD
     PARAMETERS = {
         "companyName": { "value": COMPANY_NAME },
         "siteName": { "value": WEBSITE },
-        "hostingPlanName": { "value": DEPLOYMENT }
+        "hostingPlanName": { "value": DEPLOYMENT },
+        "appId": { "value": BOT_APP_ID },
+        "appPassword": { "value": BOT_APP_PASSWORD },
     }
 
     result = rc.deployments.validate(

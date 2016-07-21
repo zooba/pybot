@@ -5,10 +5,12 @@
     "siteName": { "type": "string" },
     "hostingPlanName": { "type": "string" },
     "companyName": { "type": "string" },
+    "appId": { "type": "string" },
+    "appPassword": { "type": "string" },
     "pythonPackage": {
       "type": "string",
-      "defaultValue": "python351x64",
-      "allowedValues": [ "python351x64", "python2711x64" ]
+      "defaultValue": "python352x64",
+      "allowedValues": [ "python352x64", "python352x86", "python351x64", "python2712x64", "python2712x86", "python2711x64" ]
     }
   },
   "variables": {
@@ -76,6 +78,8 @@
           ],
           "properties": {
             "COMPANY_NAME": "[parameters('companyName')]",
+            "APP_ID": "[parameters('appId')]",
+            "APP_PASSWORD": "[parameters('appPassword')]",
 
             "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2014-04-01').InstrumentationKey]"
           }

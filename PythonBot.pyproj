@@ -12,6 +12,11 @@
     <OutputPath>.</OutputPath>
     <Name>PythonBot</Name>
     <RootNamespace>PythonBot</RootNamespace>
+    <InterpreterId>MSBuild|env|$(MSBuildProjectFullPath)</InterpreterId>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <Environment>
+    </Environment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -26,19 +31,38 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="bot.py" />
-    <Compile Include="deploy.py" />
+    <Compile Include="bot_models.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="message.py" />
+    <Compile Include="bot_requests.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="_deploy\deploy_helpers.py" />
+    <Compile Include="_deploy\__init__.py" />
+    <Compile Include="_deploy\__main__.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="requirements.txt" />
-    <Content Include="runtime.txt" />
     <Content Include="web.config" />
+    <Content Include="_deploy\deploy.json" />
   </ItemGroup>
-  <PropertyGroup>
-    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
-    <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
-  </PropertyGroup>
-  <Import Condition="Exists($(PtvsTargetsFile))" Project="$(PtvsTargetsFile)" />
-  <Import Condition="!Exists($(PtvsTargetsFile))" Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
+  <ItemGroup>
+    <Folder Include="_deploy\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Interpreter Include="env\">
+      <Id>env</Id>
+      <BaseInterpreter>Global|PythonCore|3.5|x64</BaseInterpreter>
+      <Version>3.5</Version>
+      <Description>env</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <LibraryPath>Lib\</LibraryPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>Amd64</Architecture>
+    </Interpreter>
+  </ItemGroup>
   <!-- Uncomment the CoreCompile target to enable the Build command in
        Visual Studio and specify your pre- and post-build commands in
        the BeforeBuild and AfterBuild targets below. -->
@@ -47,4 +71,5 @@
   </Target>
   <Target Name="AfterBuild">
   </Target>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
