@@ -1,83 +1,104 @@
+from datetime import datetime
 import json
+import bot_requests
 
-_SENTINEL = object()
+_STATE_URI = 'https://state.botframework.com'
 
-def _wrap(cls, obj):
-    if isinstance(obj, dict):
-        return WrappedDict(obj)
-    if isinstance(obj, (list, tuple)):
-        return WrappedList(obj)
-    return obj
+class User:
+    def __init__(self, state_uri, channel_id, conversation_id, data):
+        self._state_uri = state_uri
+        self._channel_id = channel_id
+        self._conversation_id = conversation_id
+        self._data = data
+        self._id = data['id']
+        self.name = data.get('name', '')
+        self.data = {}
+        self._etag = '*'
+        self.conversation_data = {}
+        self._conversation_etag = '*'
+        self.reload_data()
 
-class WrappedList:
-    def __init__(self, d):
-        self._d = d
+    def save_data(self, include_data=True, include_conversation_data=True):
+        if include_data:
+            data = {'data': self.data, 'eTag': self._etag}
+            bot_requests.set_user_data(self._state_uri, self._channel_id, self._id, data)
+        if include_conversation_data:
+            data = {'data': self.conversation_data, 'eTag': self._conversation_etag}
+            bot_requests.set_private_conversation_data(self._state_uri, self._channel_id, self._conversation_id, self._id, data)
 
-    def __iter__(self):
-        return map(_wrap, self._d)
+    def reload_data(self):
+        data = bot_requests.get_user_data(self._state_uri, self._channel_id, self._id)
+        self.data = data.get('data') or {}
+        self._etag = data.get('eTag', '*')
+        data = bot_requests.get_private_conversation_data(self._state_uri, self._channel_id, self._conversation_id, self._id)
+        self.conversation_data = data.get('data') or {}
+        self._conversation_etag = data.get('eTag', '*')
 
-    def __len__(self):
-        return len(self._d)
-
-    def __getitem__(self, index):
-        return _wrap(self._d[index])
-
-    def __setitem__(self, index, value):
-        self._d[index] = value
-
-    def __delitem__(self, index):
-        del self._d[index]
-
-class WrappedDict:
-    def __init__(self, d):
-        self._d = dict(d) if d else None
-
-    def __getitem__(self, key):
-        r = self.get(key, _SENTINEL)
-        if r is _SENTINEL:
-            raise KeyError(key)
-        return self.wrap(r)
-
-    def __setitem__(self, key, value):
-        self._d[key] = value
-
-    def __delitem__(self, key):
-        del self._d[key]
-
-    def get(self, key, default=None):
-        if not self._d:
-            return self
-
-        r = self._d.get(key, _SENTINEL)
-        if r is _SENTINEL:
-            return default
-
-        return _wrap(r)
-
-    def __getattr__(self, attr):
-        return _wrap(self.setdefault(attr, {}))
-
-    def __setattr__(self, attr, value):
-        self._d[attr] = value
-
-    def __delattr__(self, attr):
-        del self._d[attr]
-
-    def __dir__(self):
-        return list(self) + object.__dir__(self)
-
-    def __iter__(self):
-        return self._d
-
-    def __len__(self):
-        return len(self._d)
+    def delete_data(self):
+        bot_requests.delete_state_for_user(self._state_uri, self._channel_id, self._id)
+        self.data = {}
+        self._etag = '*'
+        self.conversation_data = {}
+        self._conversation_etag = '*'
 
 class Message:
     def __init__(self, data):
-        self._data = dict(data)
+        self.type = data['type']
+        self.timestamp = data['timestamp']
+        
+        self._service_uri = data['serviceUrl']
+        self._state_uri = self._service_uri if data['channelId'] == 'emulator' else _STATE_URI
+        self._channel_id = data['channelId']
+        self._conversation_id = data['conversation']['id']
+        self._activity_id = data['id']
 
-    def respond(self, response):
-        pass
+        self.conversation_name = data['conversation'].get('name', '')
 
-    def to_json(self):
-        return json.dumps(self._data)
+        self.text = data.get('text', '')
+        self.attachments = list(data.get('attachments', []))
+        self.entities = list(data.get('entities', []))
+
+        self.from_user = User(self._service_uri, self._channel_id, self._conversation_id, data['from'])
+        self.recipient = User(self._service_uri, self._channel_id, self._conversation_id, data['recipient'])
+
+        self.data = {}
+        self._etag = '*'
+        self.reload_data()
+
+    def reload_data(self):
+        data = bot_requests.get_conversation_data(self._state_uri, self._channel_id, self._conversation_id)
+        self.data = data.get('data') or {}
+        self._etag = data.get('eTag', '*')
+
+    def save_data(self):
+        data = {'data': self.data, 'eTag': self._etag}
+        bot_requests.set_conversation_data(self._state_uri, self._channel_id, self._conversation_id, data)
+
+    def post(self, text, attachments=[], entities=[], **extras):
+        data = {
+            'type': 'message',
+            'conversation': {'id': self._conversation_id},
+            **extras,
+            'text': text
+        }
+        if attachments:
+            data['attachments'] = [getattr(a, '_data', a) for a in attachments]
+        if entities:
+            data['entities'] = [getattr(e, '_data', e) for e in entities]
+        bot_requests.send_to_conversation(self._service_uri, self._conversation_id, data)
+
+    def reply(self, text, attachments=[], entities=[], **extras):
+        data = {
+            'type': 'message',
+            'conversation': {'id': self._conversation_id},
+            'replyToId': self._activity_id,
+            'recipient': self.from_user._data,
+            'from': self.recipient._data,
+            **extras,
+            'text': text,
+        }
+        if attachments:
+            data['attachments'] = [getattr(a, '_data', a) for a in attachments]
+        if entities:
+            data['entities'] = [getattr(e, '_data', e) for e in entities]
+        bot_requests.reply_to_activity(self._service_uri, self._conversation_id, self._activity_id, data)
